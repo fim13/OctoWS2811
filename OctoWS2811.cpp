@@ -40,12 +40,13 @@ static uint8_t ones = 0xFF;
 static volatile uint8_t update_in_progress = 0;
 static uint32_t update_completed_at = 0;
 
-OctoWS2811::OctoWS2811(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config)
+OctoWS2811::OctoWS2811(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config, uint8_t channelMask)
 {
 	stripLen = numPerStrip;
 	frameBuffer = frameBuf;
 	drawBuffer = drawBuf;
 	params = config;
+	_channelMask = channelMask;
 }
 
 // Waveform timing: these set the high time for a 0 and 1 bit, as a fraction of
@@ -69,12 +70,13 @@ OctoWS2811::OctoWS2811(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint
 // Discussion about timing and flicker & color shift issues:
 // http://forum.pjrc.com/threads/23877-WS2812B-compatible-with-OctoWS2811-library?p=38190&viewfull=1#post38190
 
-void OctoWS2811::begin(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config)
+void OctoWS2811::begin(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config, uint8_t channelMask)
 {
 	stripLen = numPerStrip;
 	frameBuffer = frameBuf;
 	drawBuffer = drawBuf;
 	params = config;
+	_channelMask = channelMask;
 	begin();
 }
 
@@ -93,14 +95,14 @@ void OctoWS2811::begin(void)
 
 	// configure the 8 output pins
 	GPIOD_PCOR = 0xFF;
-	pinMode(2, OUTPUT);	// strip #1
-	pinMode(14, OUTPUT);	// strip #2
-	pinMode(7, OUTPUT);	// strip #3
-	pinMode(8, OUTPUT);	// strip #4
-	pinMode(6, OUTPUT);	// strip #5
-	pinMode(20, OUTPUT);	// strip #6
-	pinMode(21, OUTPUT);	// strip #7
-	pinMode(5, OUTPUT);	// strip #8
+	if (_channelMask & (1<<0)) pinMode( 2, OUTPUT);	// strip #1
+	if (_channelMask & (1<<1)) pinMode(14, OUTPUT);	// strip #2
+	if (_channelMask & (1<<2)) pinMode( 7, OUTPUT);	// strip #3
+	if (_channelMask & (1<<3)) pinMode( 8, OUTPUT);	// strip #4
+	if (_channelMask & (1<<4)) pinMode( 6, OUTPUT);	// strip #5
+	if (_channelMask & (1<<5)) pinMode(20, OUTPUT);	// strip #6
+	if (_channelMask & (1<<6)) pinMode(21, OUTPUT);	// strip #7
+	if (_channelMask & (1<<7)) pinMode(5 , OUTPUT);	// strip #8
 
 	// create the two waveforms for WS2811 low and high bits
 	switch (params & 0xF0) {
@@ -180,6 +182,9 @@ void OctoWS2811::begin(void)
 	dma1.transferCount(bufsize);
 	dma1.disableOnCompletion();
 
+	DMA_TCD1_SADDR = &_channelMask;
+
+
 	// DMA channel #2 writes the pixel data at 23% of the cycle
 	dma2.sourceBuffer((uint8_t *)frameBuffer, bufsize);
 	dma2.destination(GPIOD_PDOR);
@@ -194,6 +199,9 @@ void OctoWS2811::begin(void)
 	dma3.transferCount(bufsize);
 	dma3.disableOnCompletion();
 	dma3.interruptAtCompletion();
+
+	DMA_TCD3_SADDR = &_channelMask;
+
 
 #if defined(__MK20DX128__)
 	// route the edge detect interrupts to trigger the 3 channels

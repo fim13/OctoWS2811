@@ -56,8 +56,8 @@ public:
 	void begin(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config = WS2811_GRB, uint8_t numPins = 8, const uint8_t *pinList = defaultPinList);
 #else
 	// Teensy 3.x is fixed to 8 pins: 2, 14, 7, 8, 6, 20, 21, 5
-	OctoWS2811(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config = WS2811_GRB);
-	void begin(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config = WS2811_GRB);
+	OctoWS2811(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config = WS2811_GRB, uint8_t _channelMask = 0xFF);
+	void begin(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config = WS2811_GRB, uint8_t _channelMask = 0xFF);
 #endif
 	void begin(void);
 
@@ -79,6 +79,8 @@ public:
 
 
 private:
+	uint8_t _channelMask;
+
 	static uint16_t stripLen;
 	static void *frameBuffer;
 	static void *drawBuffer;
